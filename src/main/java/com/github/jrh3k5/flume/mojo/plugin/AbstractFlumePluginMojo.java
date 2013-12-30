@@ -12,18 +12,14 @@ import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.MavenProjectBuilder;
 import org.apache.maven.project.MavenProjectHelper;
-import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 
-import com.github.jrh3k5.flume.mojo.plugin.artifact.FlumePluginDependencyArtifactFilter;
 import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
 import com.github.jrh3k5.flume.mojo.plugin.plexus.MojoLogger;
 
@@ -81,12 +77,6 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     private MavenProject project;
 
     /**
-     * A {@link MavenProjectBuilder} used to resolve an {@link Artifact} into a {@link MavenProject} for dependency resolution.
-     */
-    @Component(hint = "default")
-    private MavenProjectBuilder projectBuilder;
-
-    /**
      * A {@link MavenProjectHelper} used to attach the created assembly to the deployment.
      */
     @Component(hint = "default")
@@ -105,7 +95,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
      *            The {@link Artifact} whose name is to be formatted.
      * @return A formatted identifier of the given {@link Artifact}.
      */
-    private static String formatIdentifier(Artifact artifact) {
+    protected static String formatIdentifier(Artifact artifact) {
         return String.format("%s:%s:%s:%s", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), artifact.getType());
     }
 
@@ -116,29 +106,21 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
      *            The {@link MavenProject} whose name is to be formatted.
      * @return A formatted identifier of the given {@link MavenProject}.
      */
-    private static String formatIdentifier(MavenProject mavenProject) {
+    protected static String formatIdentifier(MavenProject mavenProject) {
         return String.format("%s:%s:%s:%s", mavenProject.getGroupId(), mavenProject.getArtifactId(), mavenProject.getVersion(), mavenProject.getPackaging());
     }
 
     /**
-     * Construct a Flume plugin archive.
+     * Build a Flume plugin.
      * 
-     * @param dependency
-     *            A {@link FlumePluginDependency} object representing the project dependency to be resolved and packaged into a Flume plugin.
+     * @param pluginLibrary
+     *            A {@link File} representing the library that is to copied into the {@code lib/} directory of the plugin.
+     * @param mavenProject
+     *            A {@link MavenProject} representing the project from which dependency information should be read.
      * @throws MojoExecutionException
-     *             If any environmental errors cause the build to fail.
-     * @throws MojoFailureException
-     *             If any configuration errors cause the build to fail.
+     *             If any errors occur during the bundling of the plugin archive.
      */
-    protected void buildFlumePluginArchive(FlumePluginDependency dependency) throws MojoExecutionException, MojoFailureException {
-        // Find the plugin in the project dependencies
-        final List<DependencyNode> projectChildren = resolveDependencies(project, new FlumePluginDependencyArtifactFilter(dependency));
-        if (projectChildren.isEmpty()) {
-            throw new MojoFailureException(String.format("No dependency found matching %s in dependency list.", dependency.getFormattedIdentifier()));
-        } else if (projectChildren.size() > 1) {
-            throw new MojoFailureException(String.format("More than one dependency matching %s found in project dependencies: %s", dependency.getFormattedIdentifier(), projectChildren));
-        }
-
+    protected void buildFlumePluginArchive(File pluginLibrary, MavenProject mavenProject) throws MojoExecutionException {
         final String pluginName = getPluginName();
         // Create the directory into which the libraries will be copied
         final File pluginStagingDirectory = new File(pluginsStagingDirectory, String.format("%s-staging", pluginName));
@@ -148,32 +130,18 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to create directory: " + stagingDirectory.getAbsolutePath(), e);
         }
-
-        // Resolve the dependencies of the project we've located
-        final Artifact projectChildArtifact = projectChildren.get(0).getArtifact();
-
-        // Copy the primary library
+    
         final File libDirectory = new File(stagingDirectory, "lib");
-        final File projectChildFile = artifactRepository.find(projectChildArtifact).getFile();
-        if (projectChildFile == null) {
-            throw new MojoExecutionException(String.format("No artifact file found for %s", formatIdentifier(projectChildArtifact)));
-        }
+        // Copy the primary library
         try {
-            FileUtils.copyFile(projectChildFile, new File(libDirectory, projectChildFile.getName()));
+            FileUtils.copyFile(pluginLibrary, new File(libDirectory, pluginLibrary.getName()));
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to copy primary artifact to staging lib directory: " + libDirectory.getAbsolutePath(), e);
         }
-
-        MavenProject flumeDependencyProject;
-        try {
-            flumeDependencyProject = projectBuilder.buildFromRepository(projectChildArtifact, remoteArtifactRepositories, artifactRepository);
-        } catch (ProjectBuildingException e) {
-            throw new MojoExecutionException(String.format("Failed to build project for %s", formatIdentifier(projectChildArtifact)), e);
-        }
-
+    
         // Copy the dependencies of the plugin into the libext directory
         final File libExtDirectory = new File(stagingDirectory, "libext");
-        for (DependencyNode resolvedDependency : resolveDependencies(flumeDependencyProject, providedArtifactFilter).get(0).getChildren()) {
+        for (DependencyNode resolvedDependency : resolveDependencies(mavenProject, providedArtifactFilter).get(0).getChildren()) {
             final Artifact resolvedArtifact = artifactRepository.find(resolvedDependency.getArtifact());
             try {
                 FileUtils.copyFile(resolvedArtifact.getFile(), new File(libExtDirectory, resolvedArtifact.getFile().getName()));
@@ -181,7 +149,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
                 throw new MojoExecutionException(String.format("Failed to copy artifact %s to %s.", formatIdentifier(resolvedArtifact), libExtDirectory.getAbsolutePath()), e);
             }
         }
-
+    
         final ArchiveUtils archiveUtils = ArchiveUtils.getInstance(new MojoLogger(getLog(), getClass()));
         // Create the TAR
         final File tarFile = new File(pluginStagingDirectory, String.format("%s-%s-%s.tar", pluginName, project.getVersion(), classifier));
@@ -190,7 +158,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException(String.format("Failed to TAR directory %s to file %s", stagingDirectory.getAbsolutePath(), tarFile.getAbsolutePath()), e);
         }
-
+    
         // GZIP the TAR file
         final File gzipFile = new File(outputDirectory, String.format("%s.gz", tarFile.getName()));
         try {
@@ -198,11 +166,38 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException(String.format("Failed to gzip TAR file %s to %s", tarFile.getAbsolutePath(), gzipFile.getAbsolutePath()), e);
         }
-
+    
         // Attach the artifact, if configured to do so
         if (attach) {
             projectHelper.attachArtifact(project, "tar.gz", classifier, gzipFile);
         }
+    }
+
+    /**
+     * Get the Maven project.
+     * 
+     * @return A {@link MavenProject} object representing the current project.
+     */
+    protected MavenProject getProject() {
+        return project;
+    }
+
+    /**
+     * Get the artifact repository.
+     * 
+     * @return An {@link ArtifactRepository}.
+     */
+    protected ArtifactRepository getArtifactRepository() {
+        return artifactRepository;
+    }
+
+    /**
+     * Get a list of remote repositories that can contain dependencies.
+     * 
+     * @return A {@link List} of {@link ArtifactRepository} objects representing the remote artifact repositories.
+     */
+    protected List<ArtifactRepository> getRemoteArtifactRepositories() {
+        return remoteArtifactRepositories;
     }
 
     /**
@@ -223,7 +218,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
      * @throws MojoExecutionException
      *             If any errors occur while trying to resolve the dependencies.
      */
-    private List<DependencyNode> resolveDependencies(MavenProject mavenProject, ArtifactFilter artifactFilter) throws MojoExecutionException {
+    protected List<DependencyNode> resolveDependencies(MavenProject mavenProject, ArtifactFilter artifactFilter) throws MojoExecutionException {
         try {
             return dependencyGraphBuilder.buildDependencyGraph(project, artifactFilter).getChildren();
         } catch (DependencyGraphBuilderException e) {
