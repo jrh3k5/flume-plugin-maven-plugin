@@ -24,6 +24,12 @@ import org.junit.rules.TestName;
 
 import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
 
+/**
+ * Test harness for plugin testing.
+ * 
+ * @author Joshua Hyde
+ */
+
 public abstract class AbstractFlumePluginMojoITest {
     private static final Properties ORIGINAL_SYSTEM_PROPERTIES = System.getProperties();
     private static final Properties EMPTY_PROPERTIES = new Properties();
@@ -152,7 +158,7 @@ public abstract class AbstractFlumePluginMojoITest {
      *             If converting the {@link URL} representing the file on the classpath cannot be converted into a {@link URI}.
      */
     protected File getPom(final String artifactId) throws FileNotFoundException, URISyntaxException {
-        final URL resourceUrl = getClass().getResource("/flume-plugin-maven-plugin-test-projects/" + artifactId + "/pom.xml");
+        final URL resourceUrl = getClass().getResource("/flume-plugin-maven-plugin-test-projects/" + getClass().getSimpleName() + "/" + artifactId + "/pom.xml");
         if (resourceUrl == null)
             throw new FileNotFoundException("Project POM not found: " + artifactId);
         return FileUtils.toFile(resourceUrl);
@@ -168,9 +174,10 @@ public abstract class AbstractFlumePluginMojoITest {
      *             If the given project's project directory cannot be found.
      */
     protected File getProjectDirectory(final String projectName) throws FileNotFoundException {
-        final URL projectUrl = getClass().getResource("/flume-plugin-maven-plugin-test-projects/" + projectName);
-        if (projectUrl == null)
+        final URL projectUrl = getClass().getResource("/flume-plugin-maven-plugin-test-projects/" + getClass().getSimpleName() + "/" + projectName);
+        if (projectUrl == null) {
             throw new FileNotFoundException("Project not found: " + projectName);
+        }
         return FileUtils.toFile(projectUrl);
     }
 
@@ -180,7 +187,7 @@ public abstract class AbstractFlumePluginMojoITest {
      * @return A {@link File} representing a directory to contain files for the current test.
      */
     protected File getTestDirectory() {
-        final File classDirectory = new File("target", getClass().getCanonicalName());
+        final File classDirectory = new File("target", getClass().getSimpleName());
         createDirectory(classDirectory);
 
         final File testDirectory = new File(classDirectory, getTestName());
@@ -232,6 +239,5 @@ public abstract class AbstractFlumePluginMojoITest {
         public Logger getChildLogger(String name) {
             return new QuiescentLogger(name);
         }
-
     }
 }

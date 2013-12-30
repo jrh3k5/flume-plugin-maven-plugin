@@ -27,8 +27,19 @@ import com.github.jrh3k5.flume.mojo.plugin.artifact.FlumePluginDependencyArtifac
 import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
 import com.github.jrh3k5.flume.mojo.plugin.plexus.MojoLogger;
 
+/**
+ * Skeleton definition of a plugin that assembles a Flume plugin archive.
+ * 
+ * @author Joshua Hyde
+ */
 public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     private final ArtifactFilter providedArtifactFilter = new ScopeArtifactFilter(Artifact.SCOPE_RUNTIME);
+
+    /**
+     * An {@link ArtifactRepository} used to resolve an artifact into an actual file.
+     */
+    @Parameter(required = true, readonly = true, defaultValue = "${localRepository}")
+    private ArtifactRepository artifactRepository;
 
     /**
      * An {@link ArtifactResolver} used to copy dependencies.
@@ -37,19 +48,31 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     private ArtifactResolver artifactResolver;
 
     /**
+     * Indicate whether or not the assembly should be attached to the project.
+     */
+    @Parameter(required = true, defaultValue = "true")
+    private boolean attach;
+
+    @Parameter(required = true, defaultValue = "flume-plugin")
+    private String classifier;
+
+    /**
      * A {@link DependencyGraphBuilder} used to assemble the dependency graph of the project consuming this plugin.
      */
     @Component(hint = "default")
     private DependencyGraphBuilder dependencyGraphBuilder;
 
-    @Component(hint = "default")
-    private MavenProjectBuilder projectBuilder;
+    /**
+     * The directory to which the final artifact should be written to.
+     */
+    @Parameter(required = true, defaultValue = "${project.build.directory}")
+    private File outputDirectory;
 
-    @Parameter(required = true, readonly = true, defaultValue = "${localRepository}")
-    private ArtifactRepository artifactRepository;
-
-    @Parameter(required = true, readonly = true, defaultValue = "${project.remoteArtifactRepositories}")
-    private List<ArtifactRepository> remoteArtifactRepositories;
+    /**
+     * The location where the plugin assembly will be staged prior to completion.
+     */
+    @Parameter(required = true, defaultValue = "${project.build.directory}/flume-plugins")
+    private File pluginsStagingDirectory;
 
     /**
      * A representation of the project executing this plugin.
@@ -58,20 +81,10 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     private MavenProject project;
 
     /**
-     * The location where the plugin assembly will be staged prior to completion.
+     * A {@link MavenProjectBuilder} used to resolve an {@link Artifact} into a {@link MavenProject} for dependency resolution.
      */
-    @Parameter(required = true, defaultValue = "${project.build.directory}/flume-plugins")
-    private File pluginsStagingDirectory;
-
-    @Parameter(required = true, defaultValue = "${project.build.directory}")
-    private File outputDirectory;
-
-    // TODO: attach the artifact
-    /**
-     * Indicate whether or not the assembly should be attached to the project.
-     */
-    @Parameter(required = true, defaultValue = "true")
-    private boolean attach;
+    @Component(hint = "default")
+    private MavenProjectBuilder projectBuilder;
 
     /**
      * A {@link MavenProjectHelper} used to attach the created assembly to the deployment.
@@ -79,9 +92,44 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     @Component(hint = "default")
     private MavenProjectHelper projectHelper;
 
-    @Parameter(required = true, defaultValue = "flume-plugin")
-    private String classifier;
+    /**
+     * A {@link List} of {@link ArtifactRepository} objects representing the remote repositories for artifacts.
+     */
+    @Parameter(required = true, readonly = true, defaultValue = "${project.remoteArtifactRepositories}")
+    private List<ArtifactRepository> remoteArtifactRepositories;
 
+    /**
+     * Format the name of an artifact.
+     * 
+     * @param artifact
+     *            The {@link Artifact} whose name is to be formatted.
+     * @return A formatted identifier of the given {@link Artifact}.
+     */
+    private static String formatIdentifier(Artifact artifact) {
+        return String.format("%s:%s:%s:%s", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), artifact.getType());
+    }
+
+    /**
+     * Format the name of a Maven project.
+     * 
+     * @param mavenProject
+     *            The {@link MavenProject} whose name is to be formatted.
+     * @return A formatted identifier of the given {@link MavenProject}.
+     */
+    private static String formatIdentifier(MavenProject mavenProject) {
+        return String.format("%s:%s:%s:%s", mavenProject.getGroupId(), mavenProject.getArtifactId(), mavenProject.getVersion(), mavenProject.getPackaging());
+    }
+
+    /**
+     * Construct a Flume plugin archive.
+     * 
+     * @param dependency
+     *            A {@link FlumePluginDependency} object representing the project dependency to be resolved and packaged into a Flume plugin.
+     * @throws MojoExecutionException
+     *             If any environmental errors cause the build to fail.
+     * @throws MojoFailureException
+     *             If any configuration errors cause the build to fail.
+     */
     protected void buildFlumePluginArchive(FlumePluginDependency dependency) throws MojoExecutionException, MojoFailureException {
         // Find the plugin in the project dependencies
         final List<DependencyNode> projectChildren = resolveDependencies(project, new FlumePluginDependencyArtifactFilter(dependency));
@@ -123,6 +171,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
             throw new MojoExecutionException(String.format("Failed to build project for %s", formatIdentifier(projectChildArtifact)), e);
         }
 
+        // Copy the dependencies of the plugin into the libext directory
         final File libExtDirectory = new File(stagingDirectory, "libext");
         for (DependencyNode resolvedDependency : resolveDependencies(flumeDependencyProject, providedArtifactFilter).get(0).getChildren()) {
             final Artifact resolvedArtifact = artifactRepository.find(resolvedDependency.getArtifact());
@@ -134,6 +183,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         }
 
         final ArchiveUtils archiveUtils = ArchiveUtils.getInstance(new MojoLogger(getLog(), getClass()));
+        // Create the TAR
         final File tarFile = new File(pluginStagingDirectory, String.format("%s-%s-%s.tar", pluginName, project.getVersion(), classifier));
         try {
             archiveUtils.tarDirectory(pluginStagingDirectory, tarFile);
@@ -141,6 +191,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
             throw new MojoExecutionException(String.format("Failed to TAR directory %s to file %s", stagingDirectory.getAbsolutePath(), tarFile.getAbsolutePath()), e);
         }
 
+        // GZIP the TAR file
         final File gzipFile = new File(outputDirectory, String.format("%s.gz", tarFile.getName()));
         try {
             archiveUtils.gzipFile(tarFile, gzipFile);
@@ -148,26 +199,35 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
             throw new MojoExecutionException(String.format("Failed to gzip TAR file %s to %s", tarFile.getAbsolutePath(), gzipFile.getAbsolutePath()), e);
         }
 
+        // Attach the artifact, if configured to do so
         if (attach) {
             projectHelper.attachArtifact(project, "tar.gz", classifier, gzipFile);
         }
     }
 
+    /**
+     * Get the name of the plugin to be assembled.
+     * 
+     * @return The name of the plugin to be assembled.
+     */
     protected abstract String getPluginName();
 
+    /**
+     * Resolve dependencies of a project matching the given filter.
+     * 
+     * @param mavenProject
+     *            The {@link MavenProject} whose dependency tree is to be read.
+     * @param artifactFilter
+     *            An {@link ArtifactFilter} that will determine what artifacts are to qualify.
+     * @return A {@link List} of {@link DependencyNode} objects representing the matching dependencies.
+     * @throws MojoExecutionException
+     *             If any errors occur while trying to resolve the dependencies.
+     */
     private List<DependencyNode> resolveDependencies(MavenProject mavenProject, ArtifactFilter artifactFilter) throws MojoExecutionException {
         try {
             return dependencyGraphBuilder.buildDependencyGraph(project, artifactFilter).getChildren();
         } catch (DependencyGraphBuilderException e) {
             throw new MojoExecutionException(String.format("Failed to build dependency graph for project %s", formatIdentifier(project)), e);
         }
-    }
-
-    private static String formatIdentifier(Artifact artifact) {
-        return String.format("%s:%s:%s:%s", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), artifact.getType());
-    }
-
-    private static String formatIdentifier(MavenProject mavenProject) {
-        return String.format("%s:%s:%s:%s", mavenProject.getGroupId(), mavenProject.getArtifactId(), mavenProject.getVersion(), mavenProject.getPackaging());
     }
 }

@@ -29,6 +29,6 @@
         </dependencies>
     </dependencyManagement>
     <modules>
-        <module>flume-hdfs-sink-test-project</module>
+        <module>BuildDependencyPluginMojoITest</module>
     </modules>
 </project>

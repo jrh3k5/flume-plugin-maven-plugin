@@ -6,13 +6,32 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
+/**
+ * A mojo to build a dependency into a Flume plugin.
+ * 
+ * @author Joshua Hyde
+ */
+
 @Mojo(name = "build-dependency-plugin", defaultPhase = LifecyclePhase.PACKAGE)
 public class BuildDependencyPluginMojo extends AbstractFlumePluginMojo {
-    // TODO: make this look up by groupId and artifactId and don't require the version
+    /**
+     * Defines the dependency that's to be resolved and bundled as a Flume plugin. An example configuration would be:
+     * 
+     * <pre>
+     *  &lt;dependency&gt;
+     *    &lt;groupId&gt;org.apache.flume.flume-ng-sink&lt;/groupId&gt;
+     *    &lt;artifactId&gt;flume-hdfs-sink&lt;/artifactId&gt;
+     *  &lt;/dependency&gt;
+     * </pre>
+     * 
+     * This will attempt to look up a dependency in your project by the given information, resolve its transitive dependencies, and assemble them into a {@code .tar.gz}.
+     */
     @Parameter(required = true)
     private FlumePluginDependency dependency;
 
-    // TODO: test this
+    /**
+     * The name of the plugin to be created.
+     */
     @Parameter
     private String pluginName;
 
