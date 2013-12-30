@@ -1,4 +1,112 @@
-flume-plugin-maven-plugin
-=========================
+# flume-plugin-maven-plugin
 
 A Maven plugin to generate archives that can be used as plugins in a Flume agent.
+
+## Goals
+
+This plugin provides the following goals:
+
+### build-dependency-plugin
+
+This plugin takes a specified dependency and assembles that assembly and its runtime and compile dependencies into a <tt>.tar.gz</tt> file that matches the structure of a Flume plugin.
+
+An example configuration of this might look like:
+
+    <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.github.jrh3k5</groupId>
+        <artifactId>flume-hdfs-sink-test-project-no-plugin-name</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>com.github.jrh3k5</groupId>
+                    <artifactId>flume-plugin-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>build-hdfs-sink-plugin</id>
+                            <goals>
+                                <goal>build-dependency-plugin</goal>
+                            </goals>
+                            <configuration>
+                                <dependency>
+                                    <groupId>org.apache.flume.flume-ng-sinks</groupId>
+                                    <artifactId>flume-hdfs-sink</artifactId>
+                                </dependency>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </build>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.flume.flume-ng-sinks</groupId>
+                <artifactId>flume-hdfs-sink</artifactId>
+                <version>1.4.0</version>
+            </dependency>
+        </dependencies>
+    </project>
+
+This will assemble a <tt>.tar.gz</tt> in your project's <tt>target</tt> directory called <tt>flume-hdfs-sink-1.0-SNAPSHOT-flume-plugin.tar.gz</tt> and attach it to your project for its deployment. You can change the classifier, plugin name (by default, inherited from the artifact ID of the specified dependency), and whether or not the artifact is attached with the following configuration elements:
+
+    <configuration>
+        <!-- Turn off attaching the artifact to your project -->
+        <attach>false</attach>
+        <!-- Change the classifier from "flume-plugin" -->
+        <classifier>different-classifier</classifier>
+        <!-- Change the plugin name -->
+        <pluginName>not-the-artifactId</pluginName>
+    </configuration>
+
+### build-project-plugin
+
+This plugin assembles your current project, rather than a dependency of it, and its dependencies into a <tt>.tar.gz</tt> archive that matches the structure of a Flume plugin. An example usage might look like:
+
+    <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        <modelVersion>4.0.0</modelVersion>
+        <parent>
+            <groupId>com.github.jrh3k5</groupId>
+            <artifactId>BuildProjectPluginMojoITest</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </parent>
+        <artifactId>test-project</artifactId>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>com.github.jrh3k5</groupId>
+                    <artifactId>flume-plugin-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>build-project-plugin</id>
+                            <goals>
+                                <goal>build-project-plugin</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </build>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.flume.flume-ng-sinks</groupId>
+                <artifactId>flume-hdfs-sink</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </project>
+
+This will create an artifact called <tt>test-project-1.0-SNAPSHOT-flume-plugin.tar.gz</tt> and attach it to your project. It will contain the JAR produced by this project in the <tt>lib/</tt> folder of the plugin and all of its runtime and compile dependencies in the <tt>libext/</tt> directory. Take note that, even though JUnit is listed as a dependency of this project, it will be excluded because it is a <tt>test</tt>-scoped dependency.  You can change the classifier, plugin name (by default, inherited from the artifact ID of the project using the plugin), and whether or not the artifact is attached with the following configuration elements:
+
+    <configuration>
+        <!-- Turn off attaching the artifact to your project -->
+        <attach>false</attach>
+        <!-- Change the classifier from "flume-plugin" -->
+        <classifier>different-classifier</classifier>
+        <!-- Change the plugin name -->
+        <pluginName>not-the-artifactId</pluginName>
+    </configuration>
