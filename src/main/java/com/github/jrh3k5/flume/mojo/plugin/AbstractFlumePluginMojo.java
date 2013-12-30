@@ -174,21 +174,21 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     }
 
     /**
-     * Get the Maven project.
-     * 
-     * @return A {@link MavenProject} object representing the current project.
-     */
-    protected MavenProject getProject() {
-        return project;
-    }
-
-    /**
      * Get the artifact repository.
      * 
      * @return An {@link ArtifactRepository}.
      */
     protected ArtifactRepository getArtifactRepository() {
         return artifactRepository;
+    }
+
+    /**
+     * Get the Maven project.
+     * 
+     * @return A {@link MavenProject} object representing the current project.
+     */
+    protected MavenProject getProject() {
+        return project;
     }
 
     /**

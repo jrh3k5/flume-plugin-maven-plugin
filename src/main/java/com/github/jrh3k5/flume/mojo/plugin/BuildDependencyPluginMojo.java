@@ -77,5 +77,4 @@ public class BuildDependencyPluginMojo extends AbstractFlumePluginMojo {
     protected String getPluginName() {
         return pluginName == null ? dependency.getArtifactId() : pluginName;
     }
-
 }
