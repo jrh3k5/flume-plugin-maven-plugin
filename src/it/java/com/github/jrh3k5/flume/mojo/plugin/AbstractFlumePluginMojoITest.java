@@ -6,7 +6,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
@@ -33,6 +37,12 @@ import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
 public abstract class AbstractFlumePluginMojoITest {
     private static final Properties ORIGINAL_SYSTEM_PROPERTIES = System.getProperties();
     private static final Properties EMPTY_PROPERTIES = new Properties();
+    private static final Map<String, Collection<String>> TRANSITIVE_DEPENDENCIES = new HashMap<String, Collection<String>>();
+
+    static {
+        TRANSITIVE_DEPENDENCIES.put("flume-hdfs-sink", Arrays.asList("commons-io-2.1.jar", "commons-lang-2.5.jar", "flume-ng-configuration-1.4.0.jar", "flume-ng-core-1.4.0.jar",
+                "flume-ng-sdk-1.4.0.jar", "guava-10.0.1.jar", "slf4j-api-1.6.1.jar"));
+    }
 
     /**
      * Create a directory.
@@ -203,6 +213,23 @@ public abstract class AbstractFlumePluginMojoITest {
      */
     protected String getTestName() {
         return testName.getMethodName();
+    }
+
+    /**
+     * Get the dependencies for the given artifact.
+     * 
+     * @param artifactId
+     *            The ID of the artifact whose dependencies are to be retrieved.
+     * @return A {@link Collection} representing the dependencies for the given artifact.
+     * @throws IllegalArgumentException
+     *             If no dependencies are found for the given artifact.
+     */
+    protected Collection<String> getDependencies(String artifactId) {
+        final Collection<String> dependencies = TRANSITIVE_DEPENDENCIES.get(artifactId);
+        if (dependencies == null) {
+            throw new IllegalArgumentException("No dependencies found for artifact ID: " + artifactId);
+        }
+        return Collections.unmodifiableCollection(dependencies);
     }
 
     /**

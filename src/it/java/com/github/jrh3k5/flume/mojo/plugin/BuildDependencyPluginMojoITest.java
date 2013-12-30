@@ -3,9 +3,7 @@ package com.github.jrh3k5.flume.mojo.plugin;
 import static org.fest.assertions.Assertions.assertThat;
 
 import java.io.File;
-import java.util.Arrays;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.junit.Test;
@@ -53,7 +51,6 @@ public class BuildDependencyPluginMojoITest extends AbstractFlumePluginMojoITest
      */
     private void testBuildDependencyFlumePlugin(String projectName, String pluginName) throws Exception {
         final InvocationResult result = buildProject(projectName, LifecyclePhase.PACKAGE);
-        System.out.println(FileUtils.readFileToString(getLogFile()));
         assertThat(result.getExitCode()).isZero();
 
         final File projectTarget = new File(getProjectDirectory(projectName), "target");
@@ -72,14 +69,17 @@ public class BuildDependencyPluginMojoITest extends AbstractFlumePluginMojoITest
         assertThat(pluginDirectory).exists();
 
         final File libDirectory = new File(pluginDirectory, "lib");
+        final String libFilename = "flume-hdfs-sink-1.4.0.jar";
         assertThat(libDirectory).exists();
-        assertThat(new File(libDirectory, "flume-hdfs-sink-1.4.0.jar")).exists();
+        assertThat(new File(libDirectory, libFilename)).exists();
 
         final File libExtDirectory = new File(pluginDirectory, "libext");
         assertThat(libExtDirectory).exists();
-        for (String jarFile : Arrays.asList("commons-io-2.1.jar", "commons-lang-2.5.jar", "flume-ng-configuration-1.4.0.jar", "flume-ng-core-1.4.0.jar", "flume-ng-sdk-1.4.0.jar", "guava-10.0.1.jar",
-                "slf4j-api-1.6.1.jar")) {
+        for (String jarFile : getDependencies("flume-hdfs-sink")) {
             assertThat(new File(libExtDirectory, jarFile)).exists();
         }
+
+        // Verify that the sink JAR, itself, was not copied into the libext directory
+        assertThat(new File(libExtDirectory, libFilename)).doesNotExist();
     }
 }

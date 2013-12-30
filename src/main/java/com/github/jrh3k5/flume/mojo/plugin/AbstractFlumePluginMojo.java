@@ -130,7 +130,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to create directory: " + stagingDirectory.getAbsolutePath(), e);
         }
-    
+
         final File libDirectory = new File(stagingDirectory, "lib");
         // Copy the primary library
         try {
@@ -138,18 +138,23 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to copy primary artifact to staging lib directory: " + libDirectory.getAbsolutePath(), e);
         }
-    
+
         // Copy the dependencies of the plugin into the libext directory
         final File libExtDirectory = new File(stagingDirectory, "libext");
-        for (DependencyNode resolvedDependency : resolveDependencies(mavenProject, providedArtifactFilter).get(0).getChildren()) {
-            final Artifact resolvedArtifact = artifactRepository.find(resolvedDependency.getArtifact());
+        for (DependencyNode resolvedDependency : resolveDependencies(mavenProject, providedArtifactFilter)) {
+            copyPluginDependency(resolvedDependency, libExtDirectory);
+        }
+
+        // Because of the way that Maven represents dependency trees, the above logic may copy the given plugin library into libext - remove it if so
+        final File pluginLibraryLibExt = new File(libExtDirectory, pluginLibrary.getName());
+        if (pluginLibraryLibExt.exists()) {
             try {
-                FileUtils.copyFile(resolvedArtifact.getFile(), new File(libExtDirectory, resolvedArtifact.getFile().getName()));
+                FileUtils.forceDelete(pluginLibraryLibExt);
             } catch (IOException e) {
-                throw new MojoExecutionException(String.format("Failed to copy artifact %s to %s.", formatIdentifier(resolvedArtifact), libExtDirectory.getAbsolutePath()), e);
+                throw new MojoExecutionException("Failed to delete file: " + pluginLibraryLibExt.getAbsolutePath(), e);
             }
         }
-    
+
         final ArchiveUtils archiveUtils = ArchiveUtils.getInstance(new MojoLogger(getLog(), getClass()));
         // Create the TAR
         final File tarFile = new File(pluginStagingDirectory, String.format("%s-%s-%s.tar", pluginName, project.getVersion(), classifier));
@@ -158,7 +163,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException(String.format("Failed to TAR directory %s to file %s", stagingDirectory.getAbsolutePath(), tarFile.getAbsolutePath()), e);
         }
-    
+
         // GZIP the TAR file
         final File gzipFile = new File(outputDirectory, String.format("%s.gz", tarFile.getName()));
         try {
@@ -166,7 +171,7 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException(String.format("Failed to gzip TAR file %s to %s", tarFile.getAbsolutePath(), gzipFile.getAbsolutePath()), e);
         }
-    
+
         // Attach the artifact, if configured to do so
         if (attach) {
             projectHelper.attachArtifact(project, "tar.gz", classifier, gzipFile);
@@ -223,6 +228,29 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
             return dependencyGraphBuilder.buildDependencyGraph(project, artifactFilter).getChildren();
         } catch (DependencyGraphBuilderException e) {
             throw new MojoExecutionException(String.format("Failed to build dependency graph for project %s", formatIdentifier(project)), e);
+        }
+    }
+
+    /**
+     * Copy the given plugin dependency - and all of its children - to the {@code libext/} directory.
+     * 
+     * @param dependencyNode
+     *            The {@link DependencyNode} whose artifact and children are to be copied.
+     * @param libExtDirectory
+     *            A {@link File} representing the directory to which the libraries are to be copied.
+     * @throws MojoExecutionException
+     *             If any errors occur during the copying.
+     */
+    private void copyPluginDependency(DependencyNode dependencyNode, File libExtDirectory) throws MojoExecutionException {
+        final Artifact resolvedArtifact = artifactRepository.find(dependencyNode.getArtifact());
+        try {
+            FileUtils.copyFile(resolvedArtifact.getFile(), new File(libExtDirectory, resolvedArtifact.getFile().getName()));
+        } catch (IOException e) {
+            throw new MojoExecutionException(String.format("Failed to copy artifact %s to %s.", formatIdentifier(resolvedArtifact), libExtDirectory.getAbsolutePath()), e);
+        }
+        // Recursively copy all other libraries
+        for (DependencyNode child : dependencyNode.getChildren()) {
+            copyPluginDependency(child, libExtDirectory);
         }
     }
 }
