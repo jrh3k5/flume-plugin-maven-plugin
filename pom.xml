@@ -28,6 +28,10 @@ limitations under the License.
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <powermock.version>1.5.2</powermock.version>
     </properties>
+    <scm>
+        <connection>scm:git:git@github.com:jrh3k5/flume-plugin-maven-plugin.git</connection>
+        <url>https://github.com/jrh3k5/flume-plugin-maven-plugin</url>
+    </scm>
     <issueManagement>
         <system>GitHub</system>
         <url>https://github.com/jrh3k5/flume-plugin-maven-plugin/issues</url>
