@@ -20,6 +20,9 @@ package com.github.jrh3k5.flume.mojo.plugin;
 import static org.fest.assertions.Assertions.assertThat;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.shared.invoker.InvocationResult;
@@ -46,6 +49,20 @@ public class BuildProjectPluginMojoITest extends AbstractFlumePluginMojoITest {
         final String projectName = "test-project";
         testProjectPluginAssembly(projectName, projectName);
         verifyPluginInstallation(projectName, projectName, true);
+    }
+
+    /**
+     * Test the building of a Flume plugin out of a project when a dependency is excluded.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testBuildProjectPluginExclude() throws Exception {
+        final String projectName = "test-project-exclude";
+        final Collection<String> dependencies = new ArrayList<String>(getExpectedDependencies());
+        assertThat(dependencies.remove("slf4j-log4j12-1.6.1.jar")).isTrue();
+        testProjectPluginAssembly(projectName, projectName, dependencies);
     }
 
     /**
@@ -86,6 +103,22 @@ public class BuildProjectPluginMojoITest extends AbstractFlumePluginMojoITest {
      *             If any errors occur during the verification.
      */
     private void testProjectPluginAssembly(String projectName, String pluginName) throws Exception {
+        testProjectPluginAssembly(projectName, pluginName, getExpectedDependencies());
+    }
+
+    /**
+     * Test the assembly of a project into a Flume plugin.
+     * 
+     * @param projectName
+     *            The name of the project to be assembled.
+     * @param pluginName
+     *            The name of the plugin to be assembled.
+     * @param dependencies
+     *            A {@link Collection} of filenames expected to be packaged as dependencies of the plugin.
+     * @throws Exception
+     *             If any errors occur during the verification.
+     */
+    private void testProjectPluginAssembly(String projectName, String pluginName, Collection<String> dependencies) throws Exception {
         final InvocationResult result = buildProject(projectName, LifecyclePhase.INSTALL);
         assertThat(result.getExitCode()).isZero();
 
@@ -110,12 +143,26 @@ public class BuildProjectPluginMojoITest extends AbstractFlumePluginMojoITest {
 
         final File libExtDirectory = new File(pluginDirectory, "libext");
         assertThat(libExtDirectory).exists();
-        assertThat(new File(libExtDirectory, "flume-hdfs-sink-1.4.0.jar")).exists();
-        for (String flumeDependency : getDependencies("flume-hdfs-sink")) {
+        for (String flumeDependency : dependencies) {
             assertThat(new File(libExtDirectory, flumeDependency)).exists();
         }
 
+        final List<String> libExtFiles = new ArrayList<String>(FileUtils.getFileNames(libExtDirectory, null, null, false));
+        libExtFiles.removeAll(dependencies);
+        assertThat(libExtFiles).isEmpty();
+
         // Although JUnit is listed as a dependency, it should not be included because it's a test dependency
         assertThat(new File(libExtDirectory, "junit-4.11.jar")).doesNotExist();
+    }
+
+    /**
+     * Get a collection of the expected dependencies packed into the Flume plugin.
+     * 
+     * @return A {@link Collection} of filenames that are expected to be packaged as dependencies for the Flume plugin.
+     */
+    private Collection<String> getExpectedDependencies() {
+        final List<String> dependencies = new ArrayList<String>(getDependencies("flume-hdfs-sink"));
+        dependencies.add("flume-hdfs-sink-1.4.0.jar");
+        return dependencies;
     }
 }

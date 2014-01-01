@@ -30,5 +30,6 @@ limitations under the License.
       <module>test-project</module>
       <module>test-project-different-plugin-name</module>
       <module>test-project-unattached</module>
+      <module>test-project-exclude</module>
   </modules>
 </project>

@@ -22,10 +22,10 @@ import static org.fest.assertions.Assertions.assertThat;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +35,7 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
@@ -59,8 +60,14 @@ public abstract class AbstractFlumePluginMojoITest {
     private static final Map<String, Collection<String>> TRANSITIVE_DEPENDENCIES = new HashMap<String, Collection<String>>();
 
     static {
-        TRANSITIVE_DEPENDENCIES.put("flume-hdfs-sink", Arrays.asList("commons-io-2.1.jar", "commons-lang-2.5.jar", "flume-ng-configuration-1.4.0.jar", "flume-ng-core-1.4.0.jar",
-                "flume-ng-sdk-1.4.0.jar", "guava-10.0.1.jar", "slf4j-api-1.6.1.jar"));
+        final InputStream hdfsDependenciesStream = AbstractFlumePluginMojo.class.getResourceAsStream("/flume-hdfs-sink.dependencies");
+        try {
+            TRANSITIVE_DEPENDENCIES.put("flume-hdfs-sink", IOUtils.readLines(hdfsDependenciesStream));
+        } catch (IOException e) {
+            throw new ExceptionInInitializerError(e);
+        } finally {
+            IOUtils.closeQuietly(hdfsDependenciesStream);
+        }
     }
 
     /**

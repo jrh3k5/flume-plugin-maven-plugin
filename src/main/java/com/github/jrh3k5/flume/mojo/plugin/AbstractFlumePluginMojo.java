@@ -19,12 +19,14 @@ package com.github.jrh3k5.flume.mojo.plugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.artifact.resolver.ArtifactResolver;
+import org.apache.maven.artifact.resolver.filter.AndArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
 import org.apache.maven.plugin.AbstractMojo;
@@ -109,6 +111,12 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     private List<ArtifactRepository> remoteArtifactRepositories;
 
     /**
+     * A {@link List} of {@link Exclusion} objects representing the artifacts to be excluded from assembly.
+     */
+    @Parameter
+    private List<Exclusion> exclusions = Collections.emptyList();
+
+    /**
      * Format the name of an artifact.
      * 
      * @param artifact
@@ -161,7 +169,10 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
 
         // Copy the dependencies of the plugin into the libext directory
         final File libExtDirectory = new File(stagingDirectory, "libext");
-        for (DependencyNode resolvedDependency : resolveDependencies(mavenProject, providedArtifactFilter)) {
+        final AndArtifactFilter joinFilter = new AndArtifactFilter();
+        joinFilter.add(providedArtifactFilter);
+        joinFilter.add(new ExclusionArtifactFilter(exclusions));
+        for (DependencyNode resolvedDependency : resolveDependencies(mavenProject, joinFilter)) {
             copyPluginDependency(resolvedDependency, libExtDirectory);
         }
 
