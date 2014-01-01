@@ -15,8 +15,7 @@ An example configuration of this might look like:
     <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <modelVersion>4.0.0</modelVersion>
         <groupId>com.github.jrh3k5</groupId>
-        <artifactId>flume-hdfs-sink-test-project-no-plugin-name</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <artifactId>test-project</artifactId>
         <build>
             <plugins>
                 <plugin>
@@ -48,7 +47,7 @@ An example configuration of this might look like:
         </dependencies>
     </project>
 
-This will assemble a <tt>.tar.gz</tt> in your project's <tt>target</tt> directory called <tt>flume-hdfs-sink-1.0-SNAPSHOT-flume-plugin.tar.gz</tt> and attach it to your project for its deployment. You can change the classifier, plugin name (by default, inherited from the artifact ID of the specified dependency), and whether or not the artifact is attached with the following configuration elements:
+This will assemble a <tt>.tar.gz</tt> in your project's <tt>target</tt> directory called <tt>test-project-1.0-SNAPSHOT-flume-hdfs-sink-flume-plugin.tar.gz</tt> and attach it to your project for its deployment. You can change the classifier, plugin name (by default, inherited from the artifact ID of the specified dependency), and whether or not the artifact is attached with the following configuration elements:
 
     <configuration>
         <!-- Turn off attaching the artifact to your project -->
