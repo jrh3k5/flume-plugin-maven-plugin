@@ -66,8 +66,11 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
     @Parameter(required = true, defaultValue = "true")
     private boolean attach;
 
+    /**
+     * The suffix to be appended to the Flume plugin file.
+     */
     @Parameter(required = true, defaultValue = "flume-plugin")
-    private String classifier;
+    private String classifierSuffix;
 
     /**
      * A {@link DependencyGraphBuilder} used to assemble the dependency graph of the project consuming this plugin.
@@ -172,9 +175,16 @@ public abstract class AbstractFlumePluginMojo extends AbstractMojo {
             }
         }
 
+        String classifier = null;
+        // If the plugin name is the same as the artifact, then don't bother over-complicating the classifier
+        if (project.getArtifactId().equals(pluginName)) {
+            classifier = classifierSuffix;
+        } else {
+            classifier = String.format("%s-%s", pluginName, classifierSuffix);
+        }
         final ArchiveUtils archiveUtils = ArchiveUtils.getInstance(new MojoLogger(getLog(), getClass()));
         // Create the TAR
-        final File tarFile = new File(pluginStagingDirectory, String.format("%s-%s-%s.tar", pluginName, project.getVersion(), classifier));
+        final File tarFile = new File(pluginStagingDirectory, String.format("%s-%s-%s.tar", project.getArtifactId(), project.getVersion(), classifier));
         try {
             archiveUtils.tarDirectory(pluginStagingDirectory, tarFile);
         } catch (IOException e) {

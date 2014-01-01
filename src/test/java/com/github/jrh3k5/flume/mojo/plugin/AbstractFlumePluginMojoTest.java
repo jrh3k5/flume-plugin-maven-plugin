@@ -84,7 +84,7 @@ public class AbstractFlumePluginMojoTest extends AbstractUnitTest {
         Whitebox.setInternalState(mojo, "artifactRepository", artifactRepository);
         Whitebox.setInternalState(mojo, "artifactResolver", artifactResolver);
         setAttach(mojo, true);
-        Whitebox.setInternalState(mojo, "classifier", classifier);
+        Whitebox.setInternalState(mojo, "classifierSuffix", classifier);
         Whitebox.setInternalState(mojo, "dependencyGraphBuilder", dependencyGraphBuilder);
 
         outputDirectory = new File(getTestDirectory(), "target");

@@ -29,5 +29,6 @@ limitations under the License.
     <modules>
         <module>flume-hdfs-sink-test-project-no-plugin-name</module>
         <module>flume-hdfs-sink-test-project</module>
+        <module>flume-hdfs-sink-test-project-unattached</module>
     </modules>
 </project>

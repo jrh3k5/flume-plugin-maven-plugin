@@ -42,7 +42,10 @@ public class BuildDependencyPluginMojoITest extends AbstractFlumePluginMojoITest
      */
     @Test
     public void testBuildDependencyFlumePlugin() throws Exception {
-        testBuildDependencyFlumePlugin("flume-hdfs-sink-test-project", "different-name");
+        final String projectName = "flume-hdfs-sink-test-project";
+        final String pluginName = "different-name";
+        testBuildDependencyFlumePlugin(projectName, pluginName);
+        verifyPluginInstallation(projectName, pluginName, true);
     }
 
     /**
@@ -53,7 +56,24 @@ public class BuildDependencyPluginMojoITest extends AbstractFlumePluginMojoITest
      */
     @Test
     public void testBuildDependencyFlumePluginNoName() throws Exception {
-        testBuildDependencyFlumePlugin("flume-hdfs-sink-test-project-no-plugin-name", "flume-hdfs-sink");
+        final String projectName = "flume-hdfs-sink-test-project-no-plugin-name";
+        final String pluginName = "flume-hdfs-sink";
+        testBuildDependencyFlumePlugin(projectName, pluginName);
+        verifyPluginInstallation(projectName, pluginName, true);
+    }
+
+    /**
+     * If the plugin isn't configured to attach the artifact, it shouldn't be attached.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testBuildDependencyFlumePluginUnattached() throws Exception {
+        final String projectName = "flume-hdfs-sink-test-project-unattached";
+        final String pluginName = "flume-hdfs-sink";
+        testBuildDependencyFlumePlugin(projectName, pluginName);
+        verifyPluginInstallation(projectName, pluginName, false);
     }
 
     /**
@@ -67,11 +87,11 @@ public class BuildDependencyPluginMojoITest extends AbstractFlumePluginMojoITest
      *             If any errors occur during the test run.
      */
     private void testBuildDependencyFlumePlugin(String projectName, String pluginName) throws Exception {
-        final InvocationResult result = buildProject(projectName, LifecyclePhase.PACKAGE);
+        final InvocationResult result = buildProject(projectName, LifecyclePhase.INSTALL);
         assertThat(result.getExitCode()).isZero();
 
-        final File projectTarget = new File(getProjectDirectory(projectName), "target");
-        final File pluginFile = new File(projectTarget, String.format("%s-1.0-SNAPSHOT-flume-plugin.tar.gz", pluginName));
+        final File projectTarget = new File(getTestProjectDirectory(projectName), "target");
+        final File pluginFile = new File(projectTarget, formatPluginFilename(projectName, pluginName, getTestProjectVersion()));
         assertThat(pluginFile).exists();
 
         final File testDirectory = getTestDirectory();

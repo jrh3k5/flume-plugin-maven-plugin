@@ -17,6 +17,8 @@
  */
 package com.github.jrh3k5.flume.mojo.plugin;
 
+import static org.fest.assertions.Assertions.assertThat;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -27,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -53,7 +56,6 @@ import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
 
 public abstract class AbstractFlumePluginMojoITest {
     private static final Properties ORIGINAL_SYSTEM_PROPERTIES = System.getProperties();
-    private static final Properties EMPTY_PROPERTIES = new Properties();
     private static final Map<String, Collection<String>> TRANSITIVE_DEPENDENCIES = new HashMap<String, Collection<String>>();
 
     static {
@@ -80,7 +82,7 @@ public abstract class AbstractFlumePluginMojoITest {
      */
     @Rule
     public TestName testName = new TestName();
-
+    private final File localRepository = new File("target/integration-test/repository");
     private BuildTool build;
 
     /**
@@ -92,7 +94,14 @@ public abstract class AbstractFlumePluginMojoITest {
     @Before
     public void setUpMavenHome() throws Exception {
         final ResourceBundle systemPropsBundle = ResourceBundle.getBundle("system");
-        System.setProperty("maven.home", systemPropsBundle.getString("maven.home"));
+        final String mavenHome = systemPropsBundle.getString("maven.home");
+        if (mavenHome == null) {
+            throw new IllegalStateException("maven.home is null; did the resources not filter correctly?");
+        }
+        if (!new File(mavenHome).exists()) {
+            throw new IllegalStateException(String.format("Configured maven.home '%s' does not exist.", mavenHome));
+        }
+        System.setProperty("maven.home", mavenHome);
     }
 
     /**
@@ -142,9 +151,28 @@ public abstract class AbstractFlumePluginMojoITest {
      *             If any errors occur during the build.
      */
     protected InvocationResult buildProject(String artifactId, LifecyclePhase goal) throws Exception {
-        final InvocationRequest request = build.createBasicInvocationRequest(getPom(artifactId), EMPTY_PROPERTIES, Collections.singletonList(goal.id()), getLogFile());
+        final Properties buildProps = new Properties();
+        buildProps.putAll(getBuildArguments());
+        final InvocationRequest request = build.createBasicInvocationRequest(getPom(artifactId), buildProps, Collections.singletonList(goal.id()), getLogFile());
         request.setShowErrors(true);
         return build.executeMaven(request);
+    }
+
+    /**
+     * Format a plugin filename.
+     * 
+     * @param pluginName
+     *            The name of the plugin.
+     * @param version
+     *            The verison of the plugin.
+     * @return The name of the plugin file.
+     */
+    protected String formatPluginFilename(String projectName, String pluginName, String version) {
+        // The plugin won't generate an artifact with anything other than the normal classifier suffix if the plugin name is the same as the artifact ID
+        if (projectName.equals(pluginName)) {
+            return String.format("%s-%s-flume-plugin.tar.gz", projectName, version);
+        }
+        return String.format("%s-%s-%s-flume-plugin.tar.gz", projectName, version, pluginName);
     }
 
     /**
@@ -154,6 +182,41 @@ public abstract class AbstractFlumePluginMojoITest {
      */
     protected ArchiveUtils getArchiveUtils() {
         return ArchiveUtils.getInstance(new QuiescentLogger(getTestName()));
+    }
+
+    /**
+     * Get a list of the arguments to be used at the build.
+     * 
+     * @return A {@link List} of arguments to be used in the Maven build.
+     */
+    protected Map<String, String> getBuildArguments() {
+        return Collections.singletonMap("maven.repo.local", getLocalRepository().getAbsolutePath());
+    }
+
+    /**
+     * Get the dependencies for the given artifact.
+     * 
+     * @param artifactId
+     *            The ID of the artifact whose dependencies are to be retrieved.
+     * @return A {@link Collection} representing the dependencies for the given artifact.
+     * @throws IllegalArgumentException
+     *             If no dependencies are found for the given artifact.
+     */
+    protected Collection<String> getDependencies(String artifactId) {
+        final Collection<String> dependencies = TRANSITIVE_DEPENDENCIES.get(artifactId);
+        if (dependencies == null) {
+            throw new IllegalArgumentException("No dependencies found for artifact ID: " + artifactId);
+        }
+        return Collections.unmodifiableCollection(dependencies);
+    }
+
+    /**
+     * Get the location of the local repository used by the build.
+     * 
+     * @return A {@link File} object representing the location of the local repository used by the build.
+     */
+    protected File getLocalRepository() {
+        return localRepository;
     }
 
     /**
@@ -192,23 +255,6 @@ public abstract class AbstractFlumePluginMojoITest {
     }
 
     /**
-     * Get a project's project directory.
-     * 
-     * @param projectName
-     *            The name of the project for which the project is to be retrieved.
-     * @return A {@link File} representing the given project's project directory.
-     * @throws FileNotFoundException
-     *             If the given project's project directory cannot be found.
-     */
-    protected File getProjectDirectory(final String projectName) throws FileNotFoundException {
-        final URL projectUrl = getClass().getResource("/flume-plugin-maven-plugin-test-projects/" + getClass().getSimpleName() + "/" + projectName);
-        if (projectUrl == null) {
-            throw new FileNotFoundException("Project not found: " + projectName);
-        }
-        return FileUtils.toFile(projectUrl);
-    }
-
-    /**
      * Get a directory isolated to the current test that can be used by the current test.
      * 
      * @return A {@link File} representing a directory to contain files for the current test.
@@ -233,20 +279,64 @@ public abstract class AbstractFlumePluginMojoITest {
     }
 
     /**
-     * Get the dependencies for the given artifact.
+     * Get a project's project directory.
      * 
-     * @param artifactId
-     *            The ID of the artifact whose dependencies are to be retrieved.
-     * @return A {@link Collection} representing the dependencies for the given artifact.
-     * @throws IllegalArgumentException
-     *             If no dependencies are found for the given artifact.
+     * @param projectName
+     *            The name of the project for which the project is to be retrieved.
+     * @return A {@link File} representing the given project's project directory.
+     * @throws FileNotFoundException
+     *             If the given project's project directory cannot be found.
      */
-    protected Collection<String> getDependencies(String artifactId) {
-        final Collection<String> dependencies = TRANSITIVE_DEPENDENCIES.get(artifactId);
-        if (dependencies == null) {
-            throw new IllegalArgumentException("No dependencies found for artifact ID: " + artifactId);
+    protected File getTestProjectDirectory(final String projectName) throws FileNotFoundException {
+        final URL projectUrl = getClass().getResource("/flume-plugin-maven-plugin-test-projects/" + getClass().getSimpleName() + "/" + projectName);
+        if (projectUrl == null) {
+            throw new FileNotFoundException("Project not found: " + projectName);
         }
-        return Collections.unmodifiableCollection(dependencies);
+        return FileUtils.toFile(projectUrl);
+    }
+
+    /**
+     * Get the group ID of the test projects.
+     * 
+     * @return The group ID of the test projects.
+     */
+    protected String getTestProjectGroupId() {
+        return "com.github.jrh3k5";
+    }
+
+    /**
+     * Get the version of the test project.
+     * 
+     * @return The version of the test project.
+     */
+    protected String getTestProjectVersion() {
+        return "1.0-SNAPSHOT";
+    }
+
+    /**
+     * Verify that the plugin was installed as expected.
+     * 
+     * @param projectName
+     *            The name of the project that was installed.
+     * @param pluginName
+     *            The name of the plugin as expected.
+     * @param expectInstalled
+     *            {@code true} if the plugin should be expected to be installed; {@code false} if not.
+     */
+    protected void verifyPluginInstallation(String projectName, String pluginName, boolean expectInstalled) {
+        final String groupIdPath = getTestProjectGroupId().replace('.', File.separatorChar);
+        final File groupIdDir = new File(getLocalRepository(), groupIdPath);
+        assertThat(groupIdDir).exists().isDirectory();
+        final File artifactDir = new File(groupIdDir, projectName);
+        assertThat(artifactDir).exists().isDirectory();
+        final File artifactVersionDir = new File(artifactDir, getTestProjectVersion());
+        assertThat(artifactVersionDir).exists().isDirectory();
+        final File pluginFile = new File(artifactVersionDir, formatPluginFilename(projectName, pluginName, getTestProjectVersion()));
+        if (expectInstalled) {
+            assertThat(pluginFile).exists();
+        } else {
+            assertThat(pluginFile).doesNotExist();
+        }
     }
 
     /**

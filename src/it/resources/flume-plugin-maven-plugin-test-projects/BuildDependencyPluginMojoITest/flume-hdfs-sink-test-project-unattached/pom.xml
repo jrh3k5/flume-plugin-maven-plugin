@@ -22,7 +22,9 @@ limitations under the License.
         <artifactId>BuildDependencyPluginMojoITest</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>flume-hdfs-sink-test-project-no-plugin-name</artifactId>
+    <artifactId>flume-hdfs-sink-test-project-unattached</artifactId>
+    <name>Unattached Flume Plugin</name>
+    <description>A project to test that, if the &lt;attach /&gt; configuration is false, the plugin is not attached.</description>
     <build>
         <plugins>
             <plugin>
@@ -35,6 +37,7 @@ limitations under the License.
                             <goal>build-dependency-plugin</goal>
                         </goals>
                         <configuration>
+                            <attach>false</attach>
                             <dependency>
                                 <groupId>org.apache.flume.flume-ng-sinks</groupId>
                                 <artifactId>flume-hdfs-sink</artifactId>

@@ -28,5 +28,7 @@ limitations under the License.
   <description>Test projects for BuildProjectPluginMojoITest</description>
   <modules>
       <module>test-project</module>
+      <module>test-project-different-plugin-name</module>
+      <module>test-project-unattached</module>
   </modules>
 </project>

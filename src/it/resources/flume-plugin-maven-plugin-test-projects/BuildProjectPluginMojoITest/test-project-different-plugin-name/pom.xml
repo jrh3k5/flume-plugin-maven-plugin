@@ -19,10 +19,11 @@ limitations under the License.
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.github.jrh3k5</groupId>
-        <artifactId>BuildDependencyPluginMojoITest</artifactId>
+        <artifactId>BuildProjectPluginMojoITest</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>flume-hdfs-sink-test-project-no-plugin-name</artifactId>
+    <artifactId>test-project-different-plugin-name</artifactId>
+    <name>Test Project With a Different Plugin Name</name>
     <build>
         <plugins>
             <plugin>
@@ -30,15 +31,12 @@ limitations under the License.
                 <artifactId>flume-plugin-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>build-hdfs-sink-plugin</id>
+                        <id>build-project-plugin</id>
                         <goals>
-                            <goal>build-dependency-plugin</goal>
+                            <goal>build-project-plugin</goal>
                         </goals>
                         <configuration>
-                            <dependency>
-                                <groupId>org.apache.flume.flume-ng-sinks</groupId>
-                                <artifactId>flume-hdfs-sink</artifactId>
-                            </dependency>
+                            <pluginName>different-plugin</pluginName>
                         </configuration>
                     </execution>
                 </executions>
@@ -49,6 +47,11 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-hdfs-sink</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

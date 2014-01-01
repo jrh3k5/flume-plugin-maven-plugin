@@ -23,6 +23,7 @@ import java.io.File;
 
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.shared.invoker.InvocationResult;
+import org.codehaus.plexus.util.FileUtils;
 import org.junit.Test;
 
 import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
@@ -35,7 +36,7 @@ import com.github.jrh3k5.flume.mojo.plugin.io.ArchiveUtils;
 
 public class BuildProjectPluginMojoITest extends AbstractFlumePluginMojoITest {
     /**
-     * Test the building of a plugin out of a Flume project.
+     * Test the building of a Flume plugin out of a project.
      * 
      * @throws Exception
      *             If any errors occur during the test run.
@@ -43,27 +44,69 @@ public class BuildProjectPluginMojoITest extends AbstractFlumePluginMojoITest {
     @Test
     public void testBuildProjectPlugin() throws Exception {
         final String projectName = "test-project";
-        final InvocationResult result = buildProject(projectName, LifecyclePhase.PACKAGE);
+        testProjectPluginAssembly(projectName, projectName);
+        verifyPluginInstallation(projectName, projectName, true);
+    }
+
+    /**
+     * Test the building of a Flume plugin out of a project.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testBuildProjectDifferentPluginName() throws Exception {
+        final String projectName = "test-project-different-plugin-name";
+        final String pluginName = "different-plugin";
+        testProjectPluginAssembly(projectName, pluginName);
+        verifyPluginInstallation(projectName, pluginName, true);
+    }
+
+    /**
+     * Test the building of a project without attaching the Flume plugin.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testBuildProjectUnattached() throws Exception {
+        final String projectName = "test-project-unattached";
+        testProjectPluginAssembly(projectName, projectName);
+        verifyPluginInstallation(projectName, projectName, false);
+    }
+
+    /**
+     * Test the assembly of a project into a Flume plugin.
+     * 
+     * @param projectName
+     *            The name of the project to be assembled.
+     * @param pluginName
+     *            The name of the plugin to be assembled.
+     * @throws Exception
+     *             If any errors occur during the verification.
+     */
+    private void testProjectPluginAssembly(String projectName, String pluginName) throws Exception {
+        final InvocationResult result = buildProject(projectName, LifecyclePhase.INSTALL);
         assertThat(result.getExitCode()).isZero();
 
-        final File targetDirectory = new File(getProjectDirectory(projectName), "target");
+        final File targetDirectory = new File(getTestProjectDirectory(projectName), "target");
         assertThat(targetDirectory).exists();
 
-        final File flumePluginTarGz = new File(targetDirectory, "test-project-1.0-SNAPSHOT-flume-plugin.tar.gz");
+        final File flumePluginTarGz = new File(targetDirectory, formatPluginFilename(projectName, pluginName, getTestProjectVersion()));
         assertThat(flumePluginTarGz).exists();
 
-        final File gunzipped = new File(getTestDirectory(), "test-project-1.0-SNAPSHOT-flume-plugin.tar");
+        final File gunzipped = new File(getTestDirectory(), FileUtils.removeExtension(flumePluginTarGz.getName()));
         final File untarredDirectory = new File(getTestDirectory(), "untarred");
         final ArchiveUtils archiveUtils = getArchiveUtils();
         archiveUtils.gunzipFile(flumePluginTarGz, gunzipped);
         archiveUtils.untarFile(gunzipped, untarredDirectory);
 
-        final File pluginDirectory = new File(untarredDirectory, projectName);
+        final File pluginDirectory = new File(untarredDirectory, pluginName);
         assertThat(pluginDirectory).exists();
 
         final File libDirectory = new File(pluginDirectory, "lib");
         assertThat(libDirectory).exists();
-        assertThat(new File(libDirectory, "test-project-1.0-SNAPSHOT.jar")).exists();
+        assertThat(new File(libDirectory, String.format("%s-%s.jar", projectName, getTestProjectVersion()))).exists();
 
         final File libExtDirectory = new File(pluginDirectory, "libext");
         assertThat(libExtDirectory).exists();
