@@ -15,8 +15,7 @@ An example configuration of this might look like:
     <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         <modelVersion>4.0.0</modelVersion>
         <groupId>com.github.jrh3k5</groupId>
-        <artifactId>flume-hdfs-sink-test-project-no-plugin-name</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <artifactId>test-project</artifactId>
         <build>
             <plugins>
                 <plugin>
@@ -48,13 +47,13 @@ An example configuration of this might look like:
         </dependencies>
     </project>
 
-This will assemble a <tt>.tar.gz</tt> in your project's <tt>target</tt> directory called <tt>flume-hdfs-sink-1.0-SNAPSHOT-flume-plugin.tar.gz</tt> and attach it to your project for its deployment. You can change the classifier, plugin name (by default, inherited from the artifact ID of the specified dependency), and whether or not the artifact is attached with the following configuration elements:
+This will assemble a <tt>.tar.gz</tt> in your project's <tt>target</tt> directory called <tt>test-project-1.0-SNAPSHOT-flume-hdfs-sink-flume-plugin.tar.gz</tt> and attach it to your project for its deployment. You can change the classifier suffix, plugin name (by default, inherited from the artifact ID of the specified dependency), and whether or not the artifact is attached with the following configuration elements:
 
     <configuration>
         <!-- Turn off attaching the artifact to your project -->
         <attach>false</attach>
-        <!-- Change the classifier from "flume-plugin" -->
-        <classifier>different-classifier</classifier>
+        <!-- Change the classifier suffix from "flume-plugin" -->
+        <classifierSuffix>different-classifier-suffix</classifierSuffix>
         <!-- Change the plugin name -->
         <pluginName>not-the-artifactId</pluginName>
     </configuration>
@@ -97,13 +96,13 @@ This plugin assembles your current project, rather than a dependency of it, and 
         </dependencies>
     </project>
 
-This will create an artifact called <tt>test-project-1.0-SNAPSHOT-flume-plugin.tar.gz</tt> and attach it to your project. It will contain the JAR produced by this project in the <tt>lib/</tt> folder of the plugin and all of its runtime and compile dependencies in the <tt>libext/</tt> directory. Take note that, even though JUnit is listed as a dependency of this project, it will be excluded because it is a <tt>test</tt>-scoped dependency.  You can change the classifier, plugin name (by default, inherited from the artifact ID of the project using the plugin), and whether or not the artifact is attached with the following configuration elements:
+This will create an artifact called <tt>test-project-1.0-SNAPSHOT-flume-plugin.tar.gz</tt> and attach it to your project. It will contain the JAR produced by this project in the <tt>lib/</tt> folder of the plugin and all of its runtime and compile dependencies in the <tt>libext/</tt> directory. Take note that, even though JUnit is listed as a dependency of this project, it will be excluded because it is a <tt>test</tt>-scoped dependency.  You can change the classifier suffix, plugin name (by default, inherited from the artifact ID of the project using the plugin), and whether or not the artifact is attached with the following configuration elements:
 
     <configuration>
         <!-- Turn off attaching the artifact to your project -->
         <attach>false</attach>
-        <!-- Change the classifier from "flume-plugin" -->
-        <classifier>different-classifier</classifier>
+        <!-- Change the classifier suffix from "flume-plugin" -->
+        <classifierSuffix>different-classifier-suffix</classifierSuffix>
         <!-- Change the plugin name -->
         <pluginName>not-the-artifactId</pluginName>
     </configuration>
