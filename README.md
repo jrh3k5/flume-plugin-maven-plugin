@@ -2,6 +2,20 @@
 
 A Maven plugin to generate archives that can be used as plugins in a Flume agent.
 
+## Dependency Information
+
+This plugin is available in the Maven 2 central repo. You can add it to your plugin simply by adding the following to your POM:
+
+    <plugin>
+        <groupId>com.github.jrh3k5</groupId>
+        <artifactId>flume-plugin-maven-plugin</artifactId>
+        <version>1.0</version> <!-- or latest version -->
+    </plugin>
+
+You can find the latest version released here:
+
+http://central.maven.org/maven2/com/github/jrh3k5/flume-plugin-maven-plugin/
+
 ## Goals
 
 This plugin provides the following goals.
