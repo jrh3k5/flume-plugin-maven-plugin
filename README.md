@@ -16,6 +16,24 @@ You can find the latest version released here:
 
 http://central.maven.org/maven2/com/github/jrh3k5/flume-plugin-maven-plugin/
 
+## Plugin Archive Format
+
+This plugin assembles a <tt>.tar.gz</tt> with a <tt>lib/</tt> and <tt>libext/</tt> beneath a folder named for the given plugin name as part of the configuration (read below).
+
+For example, if you've configured the plugin to create a plugin name "my-plugin" for the library "my-lib.jar" which depends on "a.jar" and "b.jar", the contents of the created <tt>.tar.gz</tt> file will be:
+
+    my-project-1.0-my-plugin-flume-plugin.tar.gz
+      |
+      +- my-plugin
+          |
+          +- lib/
+          |   |
+          |   +- my-lib.jar
+          +- libext/
+              |
+              +- a.jar
+              +- b.jar
+
 ## Goals
 
 This plugin provides the following goals.
