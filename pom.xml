@@ -24,7 +24,7 @@ limitations under the License.
     </parent>
     <groupId>com.github.jrh3k5</groupId>
     <artifactId>flume-plugin-maven-plugin</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1</version>
     <packaging>maven-plugin</packaging>
     <name>Flume HTTP Server Sink</name>
     <description>A Flume sink that exposes retrieved events through an HTTP server.</description>
@@ -37,7 +37,7 @@ limitations under the License.
         <connection>scm:git:git@github.com:jrh3k5/flume-plugin-maven-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jrh3k5/flume-plugin-maven-plugin.git</developerConnection>
         <url>https://github.com/jrh3k5/flume-plugin-maven-plugin</url>
-      <tag>HEAD</tag>
+      <tag>flume-plugin-maven-plugin-1.1</tag>
   </scm>
     <issueManagement>
         <system>GitHub</system>
