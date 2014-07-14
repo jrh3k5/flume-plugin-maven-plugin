@@ -9,7 +9,7 @@ This plugin is available in the Maven 2 central repo. You can add it to your plu
     <plugin>
         <groupId>com.github.jrh3k5</groupId>
         <artifactId>flume-plugin-maven-plugin</artifactId>
-        <version>1.0</version> <!-- or latest version -->
+        <version>1.1</version> <!-- or latest version -->
     </plugin>
 
 You can find the latest version released here:
@@ -164,3 +164,5 @@ You may wish to not package some artifacts with your plugin. You can exclude an 
     </configuration>
 
 The above example will filter the <tt>slf4j-log4j12</tt> artifact from the plugin assembly.
+
+Starting with version 1.1 of the plugin, you can also specify a `<classifier />` element in the `<exclusion />` element to specify a classifier to be used to exclude an artifact by its classifier.
