@@ -319,7 +319,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.maven.plugin-tools</groupId>
                 <artifactId>maven-plugin-annotations</artifactId>
-                <version>3.2</version>
+                <version>3.11.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.maven.plugin-testing</groupId>
