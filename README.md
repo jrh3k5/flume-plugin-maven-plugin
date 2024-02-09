@@ -1,5 +1,7 @@
 # flume-plugin-maven-plugin
 
+**Note**: this repo is now archived due to a lack of activity in development of Flume.
+
 A Maven plugin to generate archives that can be used as plugins in a Flume agent.
 
 ## Dependency Information
